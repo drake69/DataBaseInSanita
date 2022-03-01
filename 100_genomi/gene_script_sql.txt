@@ -1,0 +1,241 @@
+
+mysql –u user_xxxx –p -h 127.0.0.1
+
+
+create database user_xxxx COLLATE "utf8_ci";
+
+
+show databases;
+
+
+DROP DATABASE `user_xxxx`;
+
+CREATE TABLE `gene` (
+  stable_id varchar(10)
+)
+
+
+ALTER TABLE gene ADD COLUMN gene_id int(10) unsigned NOT NULL;
+
+ALTER TABLE gene ADD COLUMN seq_region_start int(10) unsigned NOT NULL;
+
+ALTER TABLE gene ADD COLUMN seq_region_end int(10) unsigned NOT NULL;
+
+ALTER TABLE gene CHANGE stable_id stable_id varchar(128);
+
+CREATE TABLE `gene` (
+  `gene_id` int(10) unsigned NOT NULL,
+  `biotype` varchar(40) NOT NULL,
+  `analysis_id` smallint(5) unsigned NOT NULL,
+  `seq_region_id` int(10) unsigned NOT NULL,
+  `seq_region_start` int(10) unsigned NOT NULL,
+  `seq_region_end` int(10) unsigned NOT NULL,
+  `seq_region_strand` tinyint(2) NOT NULL,
+  `display_xref_id` int(10) unsigned DEFAULT NULL,
+  `source` varchar(40) NOT NULL,
+  `description` text,
+  `is_current` tinyint(1) NOT NULL DEFAULT '1',
+  `canonical_transcript_id` int(10) unsigned NOT NULL,
+  `stable_id` varchar(128) DEFAULT NULL,
+  `version` smallint(5) unsigned DEFAULT NULL,
+  `created_date` datetime DEFAULT NULL,
+  `modified_date` datetime DEFAULT NULL
+);
+
+
+INSERT INTO gene (seq_region_start, seq_region_end, stable_id) VALUES (7760, 7831, "LCA_19");
+
+INSERT INTO gene VALUES (554,"Mt_tRNA",1,132907,577,647,1,6375890,"insdc","mitochondrially encoded tRNA-Phe (UUU/C) [Source:HGNC Symbol;Acc:HGNC:7481]",1,1587,"ENSG00000210049",1,'2006-05-12 00:00:00','2006-05-12 00:00:00');
+
+
+mysqlimport -u user_xxxx --fields-terminated-by='\t' --fields-escaped-by=\\ user_xxxx -L gene.txt -p
+
+SET GLOBAL local_infile = true;
+
+SET GLOBAL binlog_format = 'ROW';
+
+
+select * from gene;
+
+select * from gene limit 10;
+
+select * from gene limit 10 order by sequence;
+
+select stable_id, seq_region_start, seq_region_end from gene where stable_id="LRG_89" order by stable_id;
+
+select stable_id, seq_region_start, seq_region_end from gene where seq_region_start =5001 order by stable_id;
+
+select stable_id from gene where created_date<= "2004-12-01" order by created_date limit 10;
+
+select* from gene where seq_region_end – seq_region_start < 10;
+
+
+select g.* from gene g where g.created_date > '2019-01-01' limit 10;
+
+select  stable_id as gene_name from gene  where created_date > "2019-01-01" limit 10;
+
+
+select count(*), source from gene group by source; 
+
+select count(*) as conteggio, source from gene where stable_id like "LRG%" group by source;
+
+select count(*), source from gene where stable_id like "ENS%" group by source;
+
+select count(*), YEAR(created_date) from gene where created_date < now() group by YEAR(created_date) ;
+
+select count(*) as conteggio, year(created_date) as anno from gene where created_date < now() group by year(created_date) order by anno;
+
+select stable_id, length(stable_id) from gene where length(stable_id)= (select max(length(stable_id)) from gene) limit 10 ;
+
+
+
+CREATE TABLE `gene_copy` (
+  `gene_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `biotype` varchar(40) NOT NULL,
+  `analysis_id` smallint(5) unsigned NOT NULL,
+  `seq_region_id` int(10) unsigned NOT NULL,
+  `seq_region_start` int(10) unsigned NOT NULL,
+  `seq_region_end` int(10) unsigned NOT NULL,
+  `seq_region_strand` tinyint(2) NOT NULL,
+  `display_xref_id` int(10) unsigned DEFAULT NULL,
+  `source` varchar(40) NOT NULL,
+  `description` text,
+  `is_current` tinyint(1) NOT NULL DEFAULT '1',
+  `canonical_transcript_id` int(10) unsigned NOT NULL,
+  `stable_id` varchar(128) DEFAULT NULL,
+  `version` smallint(5) unsigned DEFAULT NULL,
+  `created_date` datetime DEFAULT NULL,
+  `modified_date` datetime DEFAULT NULL
+);
+
+INSERT INTO gene_copy ( stable_id ) SELECT stable_id FROM gene; 
+
+insert into gene_copy select * from gene;
+
+
+SELECT * FROM gene WHERE source = "insdc' INTO OUTFILE '/var/lib/mysql-files/genes.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n";
+
+mysqldump –u user_xxx –p –h 127.0.0.1 user_xxxx > backup.sql
+
+mysql -h 127.0.0.1 –u user_xxx -p -e 'SELECT * from  ' > /tmp/myfile.txt
+
+
+CREATE TABLE `gene` (
+  `gene_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `biotype` varchar(40) NOT NULL,
+  `analysis_id` smallint(5) unsigned NOT NULL,
+  `seq_region_id` int(10) unsigned NOT NULL,
+  `seq_region_start` int(10) unsigned NOT NULL,
+  `seq_region_end` int(10) unsigned NOT NULL,
+  `seq_region_strand` tinyint(2) NOT NULL,
+  `display_xref_id` int(10) unsigned DEFAULT NULL,
+  `source` varchar(40) NOT NULL,
+  `description` text,
+  `is_current` tinyint(1) NOT NULL DEFAULT '1',
+  `canonical_transcript_id` int(10) unsigned NOT NULL,
+  `stable_id` varchar(128) DEFAULT NULL,
+  `version` smallint(5) unsigned DEFAULT NULL,
+  `created_date` datetime DEFAULT NULL,
+  `modified_date` datetime DEFAULT NULL,
+  PRIMARY KEY (`gene_id`)
+);
+
+
+alter table gene add foreign key (seq_region_id) references gene(seq_region_id);
+
+alter table dna_align_feature add foreign key (seq_region_id) references dna(seq_region_id);
+
+alter table exon add foreign key (seq_region_id) references dna(seq_region_id);
+
+alter table assembly_exception add foreign key (seq_region_id) references dna(seq_region_id);
+
+alter table density_feature add foreign key (seq_region_id) references dna(seq_region_id);
+
+alter table ditag_feature add foreign key (seq_region_id) references dna(seq_region_id);
+
+
+
+
+ALTER TABLE `gene` ADD INDEX `seq_region_idx` (`seq_region_id`,`seq_region_start`);
+
+ALTER TABLE `gene` ADD INDEX `xref_id_index` (`display_xref_id`);
+
+ALTER TABLE `gene` ADD INDEX `analysis_idx` (`analysis_id`);
+
+ALTER TABLE `gene` ADD INDEX `stable_id_idx` (`stable_id`,`version`);
+
+ALTER TABLE `gene` ADD INDEX `canonical_transcript_id_idx` (`canonical_transcript_id`);
+
+
+
+
+
+CREATE TABLE `gene_attrib` (
+  `gene_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `attrib_type_id` smallint(5) unsigned NOT NULL DEFAULT '0',
+  `value` text NOT NULL,
+  UNIQUE KEY `gene_attribx` (`gene_id`,`attrib_type_id`,`value`(500)),
+  KEY `type_val_idx` (`attrib_type_id`,`value`(40)),
+  KEY `val_only_idx` (`value`(40)),
+  KEY `gene_idx` (`gene_id`)
+) ;
+
+
+
+
+CREATE TABLE `gene_attrib` (
+  `gene_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `attrib_type_id` smallint(5) unsigned NOT NULL DEFAULT '0',
+  `value` text NOT NULL,
+  KEY `type_val_idx` (`attrib_type_id`,`value`(40)),
+  KEY `val_only_idx` (`value`(40)),
+  KEY `gene_idx` (`gene_id`)
+);
+
+ALTER TABLE Persons ADD CONSTRAINT `gene_attribx` UNIQUE (`gene_id`,`attrib_type_id`,`value`);
+
+
+
+
+
+
+
+select* from gene where seq_region_end – seq_region_start < 10;
+
+select * from dna where sequence like concat("%",repeat("CAT",2),"%")  limit 2;
+
+select * from dna where sequence like repeat("%TAT%",2)  limit 2;
+
+
+select stable_id, length(stable_id) from gene where length(stable_id)= (select max(length(stable_id)) from gene) limit 10 ;
+
+select sequence, length(sequence) from dna where length(sequence)= (select max(length(sequence)) from dna) limit 10 ;
+
+
+SELECT * FROM gene WHERE source = 'insdc' INTO OUTFILE '/var/lib/mysql-files/lcorsaro_genes.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+
+
+
+
+
+
+
+slide windows connessione shelll + path per mac e windows
+
+slides con esercizio di trasformazione del data set in un database
+
+offerta manutenzione NGS
+
+coach 
+
+mailaperitivo
+
+cv ad Emilia
+
+
+
+
+
+
+
+
